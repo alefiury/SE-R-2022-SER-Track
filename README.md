@@ -1,4 +1,4 @@
-# Code for the SE&R 2022 Challenge - SER Track
+# SE&R 2022 Challenge - SER Track
 
 - [Introduction](#Introduction)
 - [Dependencies](#Dependencies)
