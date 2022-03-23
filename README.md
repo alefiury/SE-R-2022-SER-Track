@@ -6,7 +6,7 @@
 
 # Introduction
 
-An implementations of the first place solution submitted for the SE&R 2022 Challenge - SER track.
+Code for the first place solution submitted for the SE&R 2022 Challenge - SER track.
 
 # Dependencies
 
