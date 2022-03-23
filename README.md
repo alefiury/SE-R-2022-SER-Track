@@ -21,3 +21,9 @@ sudo pip install -r requeriments
 # Datasets
 
 In order to download all the datasets used in the experiments, run the script ```prepare_datasets.sh```, followed by ```get_metadata.py``` to prepare the metadata used to train, validate and test the models.
+
+# TODO
+
+- [ ] Normalization
+- [ ] Data augmentation
+- [ ] Best Model Weights
