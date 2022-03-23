@@ -46,7 +46,7 @@ Run the script ```prepare_datasets.sh``` to download all of the datasets used in
 
 The ```default.yaml``` file in the ```config``` directory can be used to set the essential configurations for training a model.
 
-If you want to apply gain normalization during training/testing, you must first calculate the mean dbfs level, which you can accomplish by running the ```get_mean_dbfs``` script in the ```utils``` directory, and then inserting the result in the ```target_dbfs``` parameter.
+If you want to apply gain normalization during training/testing, you must first calculate the mean dbfs level, which you can accomplish by running the ```get_mean_dbfs.py``` script in the ```utils``` directory, and then inserting the result in the ```target_dbfs``` parameter.
 
 # Pre-Trained Model
 
