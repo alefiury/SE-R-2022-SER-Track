@@ -1,5 +1,4 @@
 audiomentations==0.20.0
-datasets==1.7.0
 gdown==4.4.0
 librosa==0.8.1
 matplotlib==3.5.1
