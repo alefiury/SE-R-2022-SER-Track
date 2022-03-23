@@ -7,10 +7,10 @@ metadata:
 data:
     base_dir: ""
     target_sampling_rate: 16000
-    apply_dbfs_norm: true
+    apply_dbfs_norm: false
     target_dbfs: -31.187887972911266
     pad_audios: true
-    apply_augmentation: true
+    apply_augmentation: false
     audio_augmentator: [
         {
             "name": "pitch_shift",
@@ -43,11 +43,11 @@ train:
     gradient_accumulation_steps: 4
 
 test:
-    model_checkpoint: "./checkpoints/SE_shared_task-xls_r_300m-test-norm_dbfs-01/train"
+    model_checkpoint: "alefiury/wav2vec2-xls-r-300m-spontaneous-speech-emotion-recognition-brazilian-portuguese"
     test_base_dir: "data/test"
     output_path: "results/pred.csv"
     batch_size: 4
     num_workers: 8
 
 logging:
-    run_name: "SE-wav2vec2_base-${data.apply_dbfs_norm}_norm-True_additional_data-False_iemocap-${train.epochs}_epochs_testing"
+    run_name: "wav2vec2-xls-r-300m-spontaneous-speech-emotion-recognition-brazilian-portuguese"
