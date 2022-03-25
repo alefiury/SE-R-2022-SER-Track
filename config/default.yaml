@@ -43,11 +43,11 @@ train:
     gradient_accumulation_steps: 4
 
 test:
-    model_checkpoint: "alefiury/wav2vec2-xls-r-300m-spontaneous-speech-emotion-recognition-brazilian-portuguese"
+    model_checkpoint: "alefiury/wav2vec2-xls-r-300m-pt-br-spontaneous-speech-emotion-recognition"
     test_base_dir: "data/test"
     output_path: "results/pred.csv"
     batch_size: 4
     num_workers: 8
 
 logging:
-    run_name: "wav2vec2-xls-r-300m-spontaneous-speech-emotion-recognition-brazilian-portuguese"
+    run_name: "wav2vec2-xls-r-300m-pt-br-spontaneous-speech-emotion-recognition"
