@@ -13,7 +13,7 @@ Automatic Speech Recognition for spontaneous and prepared speech & Speech Emotio
 
 The Speech Emotion Recognition track aims to motivate research for SER in our community, mainly to discuss theoretical and practical aspects of SER, pre-processing and feature extraction, and machine learning models for Portuguese. In this task, participants must train their own models using acoustic audio features using the dataset provided called [CORAA SER version 1.0](https://github.com/rmarcacini/ser-coraa-pt-br/) composed of approximately 50 minutes of audio segments labeled in three classes: neutral, non-neutral female, and non-neutral male. While the neutral class represents audio segments with no well-defined emotional state, the non-neutral classes represent segments associated with one of the primary emotional states in the speaker's speech.
 
-The code used by the team that won first place is available in this repository.
+This repository presents the code used by our team that got first place on the SER track.
 
 Three key strategies make up the solution:
 
@@ -50,7 +50,7 @@ If you want to apply gain normalization during training/testing, you must first 
 
 # Pre-Trained Model
 
-The winning model can be found on the [huggingface hub](https://huggingface.co/alefiury/wav2vec2-xls-r-300m-spontaneous-speech-emotion-recognition-brazilian-portuguese) and can be easily fine-tuned in more data by the application.
+The model weights with the best results can be found on the [huggingface hub](https://huggingface.co/alefiury/wav2vec2-xls-r-300m-spontaneous-speech-emotion-recognition-brazilian-portuguese) and can be easily fine-tuned in more data by this application.
 
 # Author
 
