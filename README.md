@@ -50,7 +50,7 @@ If you want to apply gain normalization during training/testing, you must first 
 
 # Pre-Trained Model
 
-The model weights with the best results can be found on the [huggingface hub](https://huggingface.co/alefiury/wav2vec2-xls-r-300m-spontaneous-speech-emotion-recognition-brazilian-portuguese) and can be easily fine-tuned in more data by this application.
+The model weights with the best results can be found on the [huggingface hub](https://huggingface.co/alefiury/wav2vec2-xls-r-300m-pt-br-spontaneous-speech-emotion-recognition) and can be easily fine-tuned in more data by this application.
 
 # Author
 
