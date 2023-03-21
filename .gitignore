@@ -5,3 +5,5 @@
 ./checkpoints
 ./results
 ./wandb
+./wav2vec2_val_labels.pickle
+./wav2vec2_val_logits.pickle
