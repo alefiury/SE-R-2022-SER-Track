@@ -10,10 +10,13 @@ import torch.nn.functional as F
 import torchaudio
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from pydub import AudioSegment
 from omegaconf import DictConfig
+import matplotlib.pyplot as plt
 from datasets import Dataset, load_metric
 from transformers import Wav2Vec2Processor
+from sklearn.metrics import confusion_matrix
 from audiomentations import AddGaussianNoise, PitchShift
 
 metric = load_metric("f1")
@@ -27,18 +30,18 @@ def compute_metrics(eval_pred):
 
 def map_path(batch, base_dir, cfg):
     """Maps the real path to the audio files"""
-    batch['input_values'] = os.path.join(base_dir, batch[cfg.metadata.audio_path_column])
+    batch['input_values'] = os.path.join(base_dir, batch[cfg.metadata.audio_path_column].lstrip('/'))
     return batch
 
 
-def preprocess_metadata(cfg: DictConfig, df: pd.DataFrame):
+def preprocess_metadata(base_dir: str, cfg: DictConfig, df: pd.DataFrame):
     """Maps the real path to the audio files"""
     df.reset_index(drop=True, inplace=True)
 
     df_dataset = Dataset.from_pandas(df)
     df_dataset = df_dataset.map(
         map_path,
-        fn_kwargs={"base_dir": cfg.data.base_dir, "cfg": cfg},
+        fn_kwargs={"base_dir": base_dir, "cfg": cfg},
         num_proc=cfg.train.num_workers
     )
 
@@ -75,13 +78,9 @@ def predict(test_dataloader, model, cfg):
             scores = F.softmax(logits, dim=-1)
             pred = torch.argmax(scores, dim=1).cpu().detach().numpy()
 
-            preds.append(list(pred))
-            paths.append(list(batch[cfg.metadata.audio_path_column]))
+            preds.extend(pred)
 
-    preds = functools.reduce(operator.iconcat, preds, [])
-    paths = functools.reduce(operator.iconcat, paths, [])
-
-    return preds, paths
+    return preds
 
 
 def map_data_augmentation(aug_config):
@@ -108,7 +107,8 @@ class DataColletorTrain:
         pad_to_multiple_of: Optional[int] = None,
         apply_dbfs_norm: Union[bool, str] = False,
         target_dbfs: int = 0.0,
-        label2id: Dict = None
+        label2id: Dict = None,
+        max_audio_len: int = 20
     ):
 
         self.processor = processor
@@ -125,6 +125,8 @@ class DataColletorTrain:
         self.audio_augmentator = audio_augmentator
 
         self.label2id = label2id
+
+        self.max_audio_len = max_audio_len
 
     def __call__(self, features: List[Dict[str, Union[List[int], torch.Tensor]]]) -> Dict[str, torch.Tensor]:
         # split inputs and labels since they have to be of different lenghts and need
@@ -155,6 +157,7 @@ class DataColletorTrain:
                 # Load wav
                 else:
                     speech_array, sampling_rate = torchaudio.load(feature["input_values"])
+
                 # Transform to Mono
                 speech_array = torch.mean(speech_array, dim=0, keepdim=True)
 
@@ -162,6 +165,11 @@ class DataColletorTrain:
                     transform = torchaudio.transforms.Resample(sampling_rate, self.sampling_rate)
                     speech_array = transform(speech_array)
                     sampling_rate = self.sampling_rate
+
+                effective_size_len = sampling_rate * self.max_audio_len
+
+                if speech_array.shape[-1] > effective_size_len:
+                    speech_array = speech_array[:, :effective_size_len]
 
                 speech_array = speech_array.squeeze().numpy()
                 input_tensor = self.processor(speech_array, sampling_rate=sampling_rate).input_values
@@ -193,13 +201,12 @@ class DataColletorTest:
     def __init__(
         self,
         processor: Wav2Vec2Processor,
-        sampling_rate: int,
-        padding: Union[bool, str],
-        apply_dbfs_norm: Union[bool, str],
-        target_dbfs: int,
-        cfg: DictConfig,
+        sampling_rate: int = 16000,
+        padding: Union[bool, str] = True,
         max_length: Optional[int] = None,
         pad_to_multiple_of: Optional[int] = None,
+        label2id: Dict = None,
+        max_audio_len: int = 20
     ):
 
         self.processor = processor
@@ -209,56 +216,38 @@ class DataColletorTest:
         self.max_length = max_length
         self.pad_to_multiple_of = pad_to_multiple_of
 
-        self.apply_dbfs_norm = apply_dbfs_norm
-        self.target_dbfs = target_dbfs
-        self.cfg = cfg
+        self.label2id = label2id
+
+        self.max_audio_len = max_audio_len
 
     def __call__(self, features: List[Dict[str, Union[List[int], torch.Tensor]]]) -> Dict[str, torch.Tensor]:
         # split inputs and labels since they have to be of different lenghts and need
         # different padding methods
         input_features = []
-        audio_paths = []
+        label_features = []
         for feature in features:
-            try:
-                # Gain Normalization
-                if self.apply_dbfs_norm:
-                    # Audio is loaded in a byte array
-                    sound = AudioSegment.from_file(feature["input_values"])
-                    sound = sound.set_channels(1)
-                    change_in_dBFS = self.target_dbfs - sound.dBFS
-                    # Apply normalization
-                    normalized_sound = sound.apply_gain(change_in_dBFS)
-                    # Convert array of bytes back to array of samples in the range [-1, 1]
-                    # This enables to work wih the audio without saving on disk
-                    norm_audio_samples = np.array(normalized_sound.get_array_of_samples()).astype(np.float32, order='C') / 32768.0
+            # Load wav
+            speech_array, sampling_rate = torchaudio.load(feature["input_values"])
 
-                    if sound.channels < 2:
-                        norm_audio_samples = np.expand_dims(norm_audio_samples, axis=0)
+            # Transform to Mono
+            speech_array = torch.mean(speech_array, dim=0, keepdim=True)
 
-                    # Expand one dimension and convert to torch tensor to have the save output shape and type as torchaudio.load
-                    speech_array = torch.from_numpy(norm_audio_samples)
-                    sampling_rate = sound.frame_rate
+            if sampling_rate != self.sampling_rate:
+                transform = torchaudio.transforms.Resample(sampling_rate, self.sampling_rate)
+                speech_array = transform(speech_array)
+                sampling_rate = self.sampling_rate
 
-                # load wav
-                else:
-                    speech_array, sampling_rate = torchaudio.load(feature["input_values"])
-                # Transform to Mono
-                speech_array = torch.mean(speech_array, dim=0, keepdim=True)
+            effective_size_len = sampling_rate * self.max_audio_len
 
-                if sampling_rate != self.sampling_rate:
-                    transform = torchaudio.transforms.Resample(sampling_rate, self.sampling_rate)
-                    speech_array = transform(speech_array)
-                    sampling_rate = self.sampling_rate
+            if speech_array.shape[-1] > effective_size_len:
+                speech_array = speech_array[:, :effective_size_len]
 
-                speech_array = speech_array.squeeze().numpy()
-                input_tensor = self.processor(speech_array, sampling_rate=sampling_rate).input_values
-                input_tensor = np.squeeze(input_tensor)
+            speech_array = speech_array.squeeze().numpy()
+            input_tensor = self.processor(speech_array, sampling_rate=sampling_rate).input_values
+            input_tensor = np.squeeze(input_tensor)
 
-                input_features.append({"input_values": input_tensor})
-                audio_paths.append(feature[self.cfg.metadata.audio_path_column])
-            except Exception:
-                print("Error during load of audio:", feature["input_values"])
-                continue
+            input_features.append({"input_values": input_tensor})
+            label_features.append(int(self.label2id[feature["label"]]))
 
         batch = self.processor.pad(
             input_features,
@@ -268,6 +257,34 @@ class DataColletorTest:
             return_tensors="pt",
         )
 
-        batch[self.cfg.metadata.audio_path_column] = audio_paths
+        batch["labels"] = torch.tensor(label_features)
 
         return batch
+
+def save_conf_matrix(
+    targets: List[int],
+    preds: List[int],
+    classes: List[str],
+    output_path: str
+) -> None:
+    """
+    Saves a confusion matrix given the true labels and the predicted outputs.
+    """
+    cm = confusion_matrix(
+        y_true=targets,
+        y_pred=preds
+    )
+
+    df_cm = pd.DataFrame(
+        cm,
+        index=classes,
+        columns=classes
+    )
+
+    plt.figure(figsize=(24,12))
+    plot = sns.heatmap(df_cm, annot=True,  fmt='g')
+    figure1 = plot.get_figure()
+    plot.set_ylabel('True Label')
+    plot.set_xlabel('Predicted Label')
+    plt.tight_layout()
+    figure1.savefig(output_path, format='png')

@@ -1,15 +1,16 @@
 metadata:
-    train_path: "metadata/ser_train_multiple_languages.csv"
-    dev_path: "metadata/ser_dev_coraa.csv"
+    train_path: "../new_data_3.0/Metadata/metadata_train_select.csv"
+    dev_path: "../new_data_3.0/Metadata/metadata_validation.csv"
     audio_path_column: "wav_file"
     label_column: "label"
 
 data:
-    base_dir: ""
+    base_dir: "../new_data_3.0"
     target_sampling_rate: 16000
     apply_dbfs_norm: false
     target_dbfs: -31.187887972911266
     pad_audios: true
+    max_audio_len: 20
     apply_augmentation: false
     audio_augmentator: [
         {
@@ -30,16 +31,16 @@ train:
     model_checkpoint: "facebook/wav2vec2-xls-r-300m"
     weights_output_path: 'checkpoints/${logging.run_name}/train'
     seed: 42
-    epochs: 10
+    epochs: 20
     metric: "f1"
-    batch_size: 2
+    batch_size: 4
     num_workers: 8
     warmup_ratio: 0.1
     logging_steps: 10
     learning_rate: 0.00003
     save_total_limit: 2
     use_early_stop: False
-    early_stop_epochs: 10
+    early_stop_epochs: 20
     gradient_accumulation_steps: 4
 
 test:
@@ -47,7 +48,7 @@ test:
     test_base_dir: "data/test"
     output_path: "results/pred.csv"
     batch_size: 4
-    num_workers: 8
+    num_workers: 10
 
 logging:
-    run_name: "wav2vec2-xls-r-300m-pt-br-spontaneous-speech-emotion-recognition"
+    run_name: "wav2vec2-xls-r-300m-pt-br-spontaneous-speech-emotion-recognition-multidaset-3.0-${train.epochs}_epochs"
